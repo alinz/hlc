@@ -67,7 +67,7 @@ func (ts *Timestamp) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON overrides and imeplements how timestamp should be parsed from JSON
 func (ts *Timestamp) UnmarshalJSON(data []byte) error {
 	// need to remove quotes from data
-	data = bytes.Trim(data, "\"")
+	data = bytes.Trim(data, doubleQuote)
 
 	segments := bytes.Split(data, byteDash)
 	if len(segments) != 2 {
