@@ -3,6 +3,7 @@ package hlc
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -47,8 +48,12 @@ func max3(a, b, c int64) int64 {
 
 // Timestamp struct to capture counter and time in nanoseconds
 type Timestamp struct {
-	couter int64
-	time   int64
+	counter int64
+	time    int64
+}
+
+func (ts *Timestamp) String() string {
+	return fmt.Sprintf("%s-%s", strconv.FormatInt(ts.time, 16), strconv.FormatInt(ts.counter, 16))
 }
 
 // MarshalJSON overrides and implements how timestamp needs to be encoded in JSON
@@ -56,9 +61,7 @@ func (ts *Timestamp) MarshalJSON() ([]byte, error) {
 	var buffer bytes.Buffer
 
 	buffer.WriteString(doubleQuote)
-	buffer.WriteString(strconv.FormatInt(ts.time, 16))
-	buffer.WriteString(dash)
-	buffer.WriteString(strconv.FormatInt(ts.couter, 16))
+	buffer.WriteString(ts.String())
 	buffer.WriteString(doubleQuote)
 
 	return buffer.Bytes(), nil
@@ -93,7 +96,7 @@ func (ts *Timestamp) Less(recv *Timestamp) bool {
 	switch {
 	case ts.time < recv.time:
 		return true
-	case ts.time == recv.time && ts.couter < recv.couter:
+	case ts.time == recv.time && ts.counter < recv.counter:
 		return true
 	default:
 		return false
@@ -107,14 +110,14 @@ func (ts *Timestamp) Now() *Timestamp {
 	ts.time = max2(t, pt())
 
 	if ts.time == t {
-		ts.couter++
+		ts.counter++
 	} else {
-		ts.couter = 0
+		ts.counter = 0
 	}
 
 	return &Timestamp{
-		couter: ts.couter,
-		time:   ts.time,
+		counter: ts.counter,
+		time:    ts.time,
 	}
 }
 
@@ -124,13 +127,13 @@ func (ts *Timestamp) Update(msg *Timestamp) {
 	t := ts.time
 	ts.time = max3(t, msg.time, pt())
 	if ts.time == t && t == msg.time {
-		ts.couter = max2(ts.couter, msg.couter) + 1
+		ts.counter = max2(ts.counter, msg.counter) + 1
 	} else if ts.time == t {
-		ts.couter++
+		ts.counter++
 	} else if ts.time == msg.time {
-		ts.couter = msg.couter + 1
+		ts.counter = msg.counter + 1
 	} else {
-		ts.couter = 0
+		ts.counter = 0
 	}
 }
 
